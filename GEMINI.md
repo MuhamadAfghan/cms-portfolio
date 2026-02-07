@@ -7,8 +7,9 @@ This project is a CMS Portfolio template built with React, TypeScript, Vite, and
 *   **Frontend Framework:** React
 *   **Language:** TypeScript
 *   **Build Tool:** Vite
-*   **Styling:** Tailwind CSS
-*   **Backend Integration:** Supabase (via `@supabase/supabase-js`)
+*   **Styling:** Tailwind CSS (with DaisyUI)
+*   **Backend Integration:** Supabase (via `@supabase/supabase-js` and Supabase CLI)
+*   **Routing:** React Router DOM
 
 ## Building and Running
 
@@ -43,9 +44,33 @@ VITE_SUPABASE_URL="YOUR_SUPABASE_PROJECT_URL"
 VITE_SUPABASE_ANON_KEY="YOUR_SUPABASE_ANON_KEY"
 ```
 
+### Supabase CLI Commands
+
+The `package.json` also defines scripts for interacting with the Supabase CLI:
+
+*   **Push local changes to Supabase:**
+    ```bash
+    npm run db:push
+    ```
+*   **Pull remote schema from Supabase:**
+    ```bash
+    npm run db:pull
+    ```
+*   **Show diff of local and remote schema:**
+    ```bash
+    npm run db:diff
+    ```
+*   **Reset local Supabase database:**
+    ```bash
+    npm run db:reset
+    ```
+
 ## Development Conventions
 
 *   **Code Formatting:** (TODO: Investigate if Prettier/ESLint are configured)
 *   **TypeScript:** Strict TypeScript checks are enabled.
-*   **Styling:** Utility-first CSS with Tailwind CSS.
+*   **Styling:** Utility-first CSS with Tailwind CSS and DaisyUI components.
 *   **Project Structure:** Standard Vite/React project structure with `src` containing application code.
+*   **State Management:** Context API is used for global state (e.g., `src/contexts`).
+*   **Routing:** React Router DOM for client-side routing.
+*   **Schema Definitions:** Zod schemas are used for validation (e.g., `src/schemas`).

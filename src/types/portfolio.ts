@@ -8,6 +8,8 @@ export interface Portfolio {
   slug: string | null
   summary: string | null
   content: string | null
+  link_demo: string | null
+  link_github: string | null
   status: PortfolioStatus
   featured: boolean
   created_at?: string
@@ -30,6 +32,8 @@ export interface PortfolioInput {
   slug?: string | null
   summary?: string | null
   content?: string | null
+  link_demo?: string | null
+  link_github?: string | null
   status: PortfolioStatus
   featured: boolean
 }

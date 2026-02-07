@@ -95,6 +95,8 @@ const AddPortfolioPage: React.FC = () => {
   const [slugEdited, setSlugEdited] = useState(false)
   const [summary, setSummary] = useState('')
   const [content, setContent] = useState('')
+  const [linkDemo, setLinkDemo] = useState('')
+  const [linkGithub, setLinkGithub] = useState('')
   const [status, setStatus] = useState<PortfolioStatus>('draft')
   const [featured, setFeatured] = useState(false)
   const [selectedTechStacks, setSelectedTechStacks] = useState<string[]>([])
@@ -250,6 +252,8 @@ const AddPortfolioPage: React.FC = () => {
       slug: slug.trim() ? slug : slugify(title),
       summary,
       content,
+      link_demo: linkDemo,
+      link_github: linkGithub,
       status,
       featured,
     })
@@ -349,6 +353,28 @@ const AddPortfolioPage: React.FC = () => {
                     placeholder="A quick overview for cards and previews."
                     value={summary}
                     onChange={(event) => setSummary(event.target.value)}
+                  />
+                </label>
+                <label className="form-control w-full">
+                  <div className="label">
+                    <span className="label-text">Demo Link</span>
+                  </div>
+                  <input
+                    className="input input-bordered w-full"
+                    placeholder="https://your-demo.com"
+                    value={linkDemo}
+                    onChange={(event) => setLinkDemo(event.target.value)}
+                  />
+                </label>
+                <label className="form-control w-full">
+                  <div className="label">
+                    <span className="label-text">GitHub Link</span>
+                  </div>
+                  <input
+                    className="input input-bordered w-full"
+                    placeholder="https://github.com/username/repo"
+                    value={linkGithub}
+                    onChange={(event) => setLinkGithub(event.target.value)}
                   />
                 </label>
               </div>

@@ -51,8 +51,8 @@ create policy "Public delete tech_stack" on public.tech_stack for delete using (
 insert into
     storage.buckets (id, name, public)
 values (
-        'tech-stacks',
-        'tech-stacks',
+        'uploads',
+        'uploads',
         true
     ) on conflict (id) do nothing;
 
@@ -60,23 +60,23 @@ do $$
 begin
   alter table storage.objects enable row level security;
 
-  drop policy if exists "Public read tech-stacks" on storage.objects;
-  create policy "Public read tech-stacks" on storage.objects for
-  select using (bucket_id = 'tech-stacks');
+  drop policy if exists "Public read uploads" on storage.objects;
+  create policy "Public read uploads" on storage.objects for
+  select using (bucket_id = 'uploads');
 
-  drop policy if exists "Public insert tech-stacks" on storage.objects;
-  create policy "Public insert tech-stacks" on storage.objects for
-  insert with check (bucket_id = 'tech-stacks');
+  drop policy if exists "Public insert uploads" on storage.objects;
+  create policy "Public insert uploads" on storage.objects for
+  insert with check (bucket_id = 'uploads');
 
-  drop policy if exists "Public update tech-stacks" on storage.objects;
-  create policy "Public update tech-stacks" on storage.objects for
-  update using (bucket_id = 'tech-stacks')
-  with check (bucket_id = 'tech-stacks');
+  drop policy if exists "Public update uploads" on storage.objects;
+  create policy "Public update uploads" on storage.objects for
+  update using (bucket_id = 'uploads')
+  with check (bucket_id = 'uploads');
 
-  drop policy if exists "Public delete tech-stacks" on storage.objects;
-  create policy "Public delete tech-stacks" on storage.objects for
-  delete using (bucket_id = 'tech-stacks');
+  drop policy if exists "Public delete uploads" on storage.objects;
+  create policy "Public delete uploads" on storage.objects for
+  delete using (bucket_id = 'uploads');
 exception
   when insufficient_privilege then
-    raise notice 'Skipping storage.objects policies for tech-stacks (insufficient privilege).';
+    raise notice 'Skipping storage.objects policies for uploads (insufficient privilege).';
 end $$;

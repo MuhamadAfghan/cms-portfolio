@@ -15,6 +15,8 @@ export const normalizePortfolioInput = (
   slug: input.slug?.trim() || null,
   summary: input.summary?.trim() || null,
   content: input.content?.trim() || null,
+  link_demo: input.link_demo?.trim() || null,
+  link_github: input.link_github?.trim() || null,
   status: normalizeStatus(input.status),
   featured: Boolean(input.featured),
 })

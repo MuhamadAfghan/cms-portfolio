@@ -15,6 +15,7 @@ const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
 }) => {
   const editorRef = useRef<HTMLDivElement | null>(null)
   const lastHtmlRef = useRef<string>('')
+  const lastMarkdownRef = useRef<string>('')
 
   const turndownService = useMemo(() => {
     const service = new TurndownService({
@@ -52,10 +53,13 @@ const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
 
   useEffect(() => {
     if (!editorRef.current) return
+    if (value === lastMarkdownRef.current) return
+
     const html = marked.parse(value || '', { breaks: true }) as string
     if (editorRef.current.innerHTML !== html) {
       editorRef.current.innerHTML = html
       lastHtmlRef.current = html
+      lastMarkdownRef.current = value
     }
   }, [value])
 
@@ -64,6 +68,7 @@ const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
     if (html === lastHtmlRef.current) return
     lastHtmlRef.current = html
     const markdown = turndownService.turndown(html)
+    lastMarkdownRef.current = markdown
     onChange(markdown)
   }
 

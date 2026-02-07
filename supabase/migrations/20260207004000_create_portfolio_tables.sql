@@ -93,29 +93,29 @@ create policy "Public delete portfolio_tech_stack" on public.portfolio_tech_stac
 for delete using (true);
 
 insert into storage.buckets (id, name, public)
-values ('portfolio-images', 'portfolio-images', true)
+values ('uploads', 'uploads', true)
 on conflict (id) do nothing;
 
 do $$
 begin
   alter table storage.objects enable row level security;
 
-  drop policy if exists "Public read portfolio-images" on storage.objects;
-  create policy "Public read portfolio-images" on storage.objects
-  for select using (bucket_id = 'portfolio-images');
+  drop policy if exists "Public read uploads" on storage.objects;
+  create policy "Public read uploads" on storage.objects
+  for select using (bucket_id = 'uploads');
 
-  drop policy if exists "Public insert portfolio-images" on storage.objects;
-  create policy "Public insert portfolio-images" on storage.objects
-  for insert with check (bucket_id = 'portfolio-images');
+  drop policy if exists "Public insert uploads" on storage.objects;
+  create policy "Public insert uploads" on storage.objects
+  for insert with check (bucket_id = 'uploads');
 
-  drop policy if exists "Public update portfolio-images" on storage.objects;
-  create policy "Public update portfolio-images" on storage.objects
-  for update using (bucket_id = 'portfolio-images') with check (bucket_id = 'portfolio-images');
+  drop policy if exists "Public update uploads" on storage.objects;
+  create policy "Public update uploads" on storage.objects
+  for update using (bucket_id = 'uploads') with check (bucket_id = 'uploads');
 
-  drop policy if exists "Public delete portfolio-images" on storage.objects;
-  create policy "Public delete portfolio-images" on storage.objects
-  for delete using (bucket_id = 'portfolio-images');
+  drop policy if exists "Public delete uploads" on storage.objects;
+  create policy "Public delete uploads" on storage.objects
+  for delete using (bucket_id = 'uploads');
 exception
   when insufficient_privilege then
-    raise notice 'Skipping storage.objects policies for portfolio-images (insufficient privilege).';
+    raise notice 'Skipping storage.objects policies for uploads (insufficient privilege).';
 end $$;

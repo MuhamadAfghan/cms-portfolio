@@ -1,5 +1,5 @@
 import React from 'react'
-import { FaEdit, FaTrash } from 'react-icons/fa' // Import icons from react-icons
+import { FaEdit, FaTrash, FaExternalLinkAlt, FaGithub } from 'react-icons/fa' // Import icons from react-icons
 import { Link } from 'react-router-dom'
 import DashboardLayout from '../layouts/DashboardLayout' // Import the new layout
 import { usePortfolios } from '../contexts/PortfolioContext'
@@ -82,6 +82,28 @@ const PortfolioManagementPage: React.FC = () => {
                     )}
                   </div>
                   <div className="card-actions justify-end mt-4">
+                    {portfolio.link_demo && (
+                      <a
+                        href={portfolio.link_demo}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn btn-sm btn-ghost tooltip"
+                        data-tip="Demo"
+                      >
+                        <FaExternalLinkAlt />
+                      </a>
+                    )}
+                    {portfolio.link_github && (
+                      <a
+                        href={portfolio.link_github}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn btn-sm btn-ghost tooltip"
+                        data-tip="GitHub"
+                      >
+                        <FaGithub />
+                      </a>
+                    )}
                     <Link
                       to={`/portfolios/${portfolio.id}/edit`}
                       className="btn btn-sm btn-info tooltip"

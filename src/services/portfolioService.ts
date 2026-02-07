@@ -11,20 +11,30 @@ const PORTFOLIO_TABLE = 'portfolio'
 const IMAGE_TABLE = 'portfolio_images'
 const JOIN_TABLE = 'portfolio_tech_stack'
 const STORAGE_BUCKET =
-  import.meta.env.VITE_SUPABASE_STORAGE_BUCKET
+  import.meta.env.VITE_SUPABASE_UPLOADS_BUCKET ||
+  import.meta.env.VITE_SUPABASE_STORAGE_BUCKET ||
+  'uploads'
 
 const supabase = () => getSupabaseClient()
 
-const sanitizeFilename = (name: string) =>
-  name.replace(/[^a-zA-Z0-9._-]/g, '-').toLowerCase()
+const slugify = (value: string) =>
+  value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)+/g, '')
 
-const generateFilename = (originalName: string) => {
-  const sanitized = sanitizeFilename(originalName)
+const getPortfolioFolder = (title: string) => slugify(title) || 'portfolio'
+
+const generatePortfolioFilename = (title: string, originalName: string) => {
+  const extMatch = originalName.match(/\.([a-z0-9]+)$/i)
+  const ext = extMatch ? `.${extMatch[1].toLowerCase()}` : ''
   const random =
     typeof crypto !== 'undefined' && 'randomUUID' in crypto
       ? crypto.randomUUID()
       : `file-${Date.now()}-${Math.random().toString(16).slice(2)}`
-  return `${random}-${sanitized}`
+  const base = getPortfolioFolder(title)
+  return `${base}/${base}-${random}${ext}`
 }
 
 const getPathFromPublicUrl = (url: string) => {
@@ -40,10 +50,10 @@ const getPathFromPublicUrl = (url: string) => {
 }
 
 const uploadPortfolioImage = async (
-  portfolioId: string,
+  title: string,
   file: File,
 ): Promise<string> => {
-  const filename = `${portfolioId}/${generateFilename(file.name)}`
+  const filename = `portfolios/${generatePortfolioFilename(title, file.name)}`
   const { data, error } = await supabase()
     .storage.from(STORAGE_BUCKET)
     .upload(filename, file, {
@@ -186,6 +196,8 @@ export const createPortfolio = async (
       slug: input.slug ?? null,
       summary: input.summary ?? null,
       content: input.content ?? null,
+      link_demo: input.link_demo ?? null,
+      link_github: input.link_github ?? null,
       status: input.status,
       featured: input.featured,
     })
@@ -201,7 +213,7 @@ export const createPortfolio = async (
 
   if (imageFiles.length) {
     const urls = await Promise.all(
-      imageFiles.map((file) => uploadPortfolioImage(created.id, file)),
+      imageFiles.map((file) => uploadPortfolioImage(input.title, file)),
     )
     await insertPortfolioImages(created.id, urls)
   }
@@ -231,6 +243,8 @@ export const updatePortfolio = async (
       slug: input.slug ?? null,
       summary: input.summary ?? null,
       content: input.content ?? null,
+      link_demo: input.link_demo ?? null,
+      link_github: input.link_github ?? null,
       status: input.status,
       featured: input.featured,
       updated_at: new Date().toISOString(),
@@ -259,7 +273,7 @@ export const updatePortfolio = async (
 
   if (options?.images?.length) {
     const urls = await Promise.all(
-      options.images.map((file) => uploadPortfolioImage(id, file)),
+      options.images.map((file) => uploadPortfolioImage(input.title, file)),
     )
     await insertPortfolioImages(id, urls)
   }

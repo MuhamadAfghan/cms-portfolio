@@ -7,7 +7,9 @@ import type {
 
 const TABLE_NAME = 'tech_stack'
 const STORAGE_BUCKET =
-  import.meta.env.VITE_SUPABASE_STORAGE_BUCKET || 'tech-stacks'
+  import.meta.env.VITE_SUPABASE_UPLOADS_BUCKET ||
+  import.meta.env.VITE_SUPABASE_STORAGE_BUCKET ||
+  'uploads'
 
 const supabase = () => getSupabaseClient()
 
@@ -36,7 +38,7 @@ const getPathFromPublicUrl = (url: string) => {
 }
 
 const uploadIconImage = async (file: File) => {
-  const filename = generateFilename(file.name)
+  const filename = `tech-stacks/${generateFilename(file.name)}`
   const { data, error } = await supabase()
     .storage.from(STORAGE_BUCKET)
     .upload(filename, file, {
