@@ -114,6 +114,7 @@ export const fetchPortfolios = async (): Promise<PortfolioWithRelations[]> => {
         portfolio_tech_stack ( tech_stack:tech_stack ( id, name, type, source ) )
       `,
     )
+    .order('sort_order', { ascending: true, nullsFirst: false })
     .order('created_at', { ascending: false })
     .order('sort_order', { foreignTable: 'portfolio_images', ascending: true })
 
@@ -286,6 +287,19 @@ export const updatePortfolio = async (
   }
 
   return updated
+}
+
+export const reorderPortfolios = async (orderedIds: string[]): Promise<void> => {
+  const updates = orderedIds.map((id, index) =>
+    supabase()
+      .from(PORTFOLIO_TABLE)
+      .update({ sort_order: index })
+      .eq('id', id),
+  )
+  const results = await Promise.all(updates)
+  for (const { error } of results) {
+    if (error) throw error
+  }
 }
 
 export const deletePortfolio = async (

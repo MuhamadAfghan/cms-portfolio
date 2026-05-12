@@ -10,6 +10,7 @@ import {
   createPortfolio,
   deletePortfolio,
   fetchPortfolios,
+  reorderPortfolios,
   updatePortfolio,
 } from '../services/portfolioService'
 import type {
@@ -36,6 +37,7 @@ interface PortfolioContextValue {
     },
   ) => Promise<PortfolioWithRelations>
   removeItem: (item: PortfolioWithRelations) => Promise<void>
+  reorderItems: (orderedIds: string[]) => Promise<void>
 }
 
 const PortfolioContext = createContext<PortfolioContextValue | null>(null)
@@ -103,6 +105,14 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({
     setItems((prev) => prev.filter((entry) => entry.id !== item.id))
   }, [])
 
+  const reorderItems = useCallback(async (orderedIds: string[]) => {
+    setItems((prev) => {
+      const map = new Map(prev.map((item) => [item.id, item]))
+      return orderedIds.map((id, index) => ({ ...map.get(id)!, sort_order: index }))
+    })
+    await reorderPortfolios(orderedIds)
+  }, [])
+
   const value = useMemo(
     () => ({
       items,
@@ -112,8 +122,9 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({
       createItem,
       updateItem,
       removeItem,
+      reorderItems,
     }),
-    [items, loading, error, refresh, createItem, updateItem, removeItem],
+    [items, loading, error, refresh, createItem, updateItem, removeItem, reorderItems],
   )
 
   return (

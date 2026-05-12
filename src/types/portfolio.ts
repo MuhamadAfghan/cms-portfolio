@@ -12,6 +12,7 @@ export interface Portfolio {
   link_github: string | null
   status: PortfolioStatus
   featured: boolean
+  sort_order: number | null
   created_at?: string
   updated_at?: string
 }
