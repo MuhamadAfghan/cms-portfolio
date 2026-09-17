@@ -1,21 +1,13 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  font-family: 'Inter', system-ui, sans-serif;
-}
+/*
+ * Global styles for the WYSIWYG editor content.
+ * Base reset, body margin, and font-family are handled by MUI's CssBaseline
+ * and theme (see src/theme). Only the contentEditable rich-text styling lives here.
+ */
 
 .editor-content:empty::before {
   content: attr(data-placeholder);
-  color: rgba(148, 163, 184, 0.7);
+  /* grey.500 works in both light and dark themes */
+  color: rgba(145, 158, 171, 0.8);
 }
 
 .editor-content h2 {
@@ -41,7 +33,19 @@ body {
 }
 
 .editor-content blockquote {
-  border-left: 3px solid rgba(148, 163, 184, 0.7);
+  border-left: 3px solid rgba(145, 158, 171, 0.5);
   padding-left: 0.75rem;
-  color: rgba(226, 232, 240, 0.8);
+  margin: 0.5rem 0;
+  /* inherit editor text color so it adapts to light/dark */
+  color: inherit;
+  opacity: 0.85;
+}
+
+.editor-content a {
+  color: #00a76f;
+  text-decoration: underline;
+}
+
+.editor-content p {
+  margin: 0.5rem 0;
 }

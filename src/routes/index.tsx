@@ -6,9 +6,12 @@ import PortfolioManagementPage from '../pages/PortfolioManagementPage'
 import AddPortfolioPage from '../pages/AddPortfolioPage'
 import EditPortfolioPage from '../pages/EditPortfolioPage'
 import ReviewManagementPage from '../pages/ReviewManagementPage'
+import AddReviewPage from '../pages/AddReviewPage'
+import EditReviewPage from '../pages/EditReviewPage'
 import AddTechStackPage from '../pages/AddTechStackPage'
 import TechStackManagementPage from '../pages/TechStackManagementPage' // Import the new page
 import EditTechStackPage from '../pages/EditTechStackPage'
+import NotFoundPage from '../pages/NotFoundPage'
 import ProtectedRoute from '../components/ProtectedRoute'
 
 const AppRoutes: React.FC = () => {
@@ -21,11 +24,14 @@ const AppRoutes: React.FC = () => {
         <Route path="/portfolios/new" element={<AddPortfolioPage />} />
         <Route path="/portfolios/:id/edit" element={<EditPortfolioPage />} />
         <Route path="/reviews" element={<ReviewManagementPage />} />
+        <Route path="/reviews/new" element={<AddReviewPage />} />
+        <Route path="/reviews/:id/edit" element={<EditReviewPage />} />
         <Route path="/tech-stacks/new" element={<AddTechStackPage />} />
         <Route path="/tech-stacks/:id/edit" element={<EditTechStackPage />} />
         <Route path="/tech-stacks" element={<TechStackManagementPage />} /> {/* New route for tech stacks */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} /> {/* Default route */}
       </Route>
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   )
 }

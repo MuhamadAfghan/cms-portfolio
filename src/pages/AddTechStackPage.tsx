@@ -1,7 +1,23 @@
 import React, { useEffect, useRef, useState } from 'react'
 import Compressor from 'compressorjs'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Grid,
+  TextField,
+  ToggleButton,
+  ToggleButtonGroup,
+  Typography,
+} from '@mui/material'
 import DashboardLayout from '../layouts/DashboardLayout'
+import PageHeader from '../components/PageHeader'
+import { useConfirm } from '../components/feedback'
+import { sanitizeSvg } from '../lib/sanitize'
+import { useUnsavedChanges } from '../hooks/useUnsavedChanges'
 import { useTechStacks } from '../contexts/TechStackContext'
 import {
   normalizeTechStackInput,
@@ -13,7 +29,9 @@ type IconType = 'image' | 'svg'
 
 const AddTechStackPage: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const errorRef = useRef<HTMLDivElement | null>(null)
   const navigate = useNavigate()
+  const { confirm, confirmDialog } = useConfirm()
   const { createItem } = useTechStacks()
   const [name, setName] = useState('')
   const [iconType, setIconType] = useState<IconType>('image')
@@ -32,6 +50,9 @@ const AddTechStackPage: React.FC = () => {
   const [error, setError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
 
+  const isDirty = !isSaving && Boolean(name || svgCode || imageFile)
+  useUnsavedChanges(isDirty)
+
   useEffect(() => {
     return () => {
       if (imagePreview.isObjectUrl && imagePreview.url) {
@@ -39,6 +60,26 @@ const AddTechStackPage: React.FC = () => {
       }
     }
   }, [imagePreview])
+
+  useEffect(() => {
+    if (error && errorRef.current) {
+      errorRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [error])
+
+  const handleCancel = async () => {
+    if (isDirty) {
+      const ok = await confirm({
+        title: 'Discard changes?',
+        message: 'You have unsaved changes. Leaving now will discard them.',
+        confirmText: 'Discard',
+        cancelText: 'Keep editing',
+        destructive: true,
+      })
+      if (!ok) return
+    }
+    navigate('/tech-stacks')
+  }
 
   const compressImage = (file: File) =>
     new Promise<File>((resolve, reject) => {
@@ -128,184 +169,193 @@ const AddTechStackPage: React.FC = () => {
 
   return (
     <DashboardLayout>
-      <div className="p-8 space-y-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h1 className="text-4xl font-bold text-white">Add New Tech Stack</h1>
-            <p className="text-sm text-base-content/60 mt-2">
-              Add a new stack icon using an image or SVG code.
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Link to="/tech-stacks" className="btn btn-ghost">
-              Cancel
-            </Link>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={handleSave}
-              disabled={isSaving}
-            >
-              {isSaving ? 'Saving...' : 'Save Tech Stack'}
-            </button>
-          </div>
-        </div>
+      <Box sx={{ p: { xs: 2, sm: 3, md: 4 }, display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <PageHeader
+          title="New Tech Stack"
+          subtitle="Add a new stack icon using an image or SVG code."
+          breadcrumbs={[
+            { label: 'Dashboard', href: '/dashboard' },
+            { label: 'Tech Stacks', href: '/tech-stacks' },
+            { label: 'New' },
+          ]}
+          sx={{ mb: 0 }}
+          action={
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button variant="text" onClick={handleCancel}>
+                Cancel
+              </Button>
+              <Button variant="contained" onClick={handleSave} disabled={isSaving}>
+                {isSaving ? 'Saving...' : 'Save'}
+              </Button>
+            </Box>
+          }
+        />
 
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-          <div className="space-y-6 xl:col-span-2">
-            <div className="card bg-base-200 shadow-xl border border-base-content/20">
-              <div className="card-body space-y-4">
-                <h2 className="card-title text-xl font-semibold">Details</h2>
-                <label className="form-control w-full">
-                  <div className="label">
-                    <span className="label-text">Stack Name</span>
-                  </div>
-                  <input
-                    className="input input-bordered w-full"
-                    placeholder="e.g. TailwindCSS"
-                    value={name}
-                    onChange={(event) => setName(event.target.value)}
-                  />
-                </label>
+        <Grid container spacing={3}>
+          <Grid size={{ xs: 12, xl: 8 }}>
+            <Card>
+              <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  Details
+                </Typography>
+                <TextField
+                  label="Stack Name"
+                  placeholder="e.g. TailwindCSS"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  required
+                  fullWidth
+                />
 
-                <label className="form-control w-full">
-                  <div className="label">
-                    <span className="label-text">Icon Type</span>
-                  </div>
-                  <div className="join">
-                    <button
-                      type="button"
-                      className={`btn join-item ${
-                        iconType === 'image' ? 'btn-primary' : 'btn-outline'
-                      }`}
-                      onClick={() => setIconType('image')}
-                    >
-                      Image
-                    </button>
-                    <button
-                      type="button"
-                      className={`btn join-item ${
-                        iconType === 'svg' ? 'btn-primary' : 'btn-outline'
-                      }`}
-                      onClick={() => setIconType('svg')}
-                    >
-                      SVG Code
-                    </button>
-                  </div>
-                </label>
+                <Box>
+                  <Typography variant="body2" sx={{ mb: 1 }}>
+                    Icon Type
+                  </Typography>
+                  <ToggleButtonGroup
+                    exclusive
+                    value={iconType}
+                    onChange={(_, next) => next && setIconType(next)}
+                    size="small"
+                  >
+                    <ToggleButton value="image">Image</ToggleButton>
+                    <ToggleButton value="svg">SVG Code</ToggleButton>
+                  </ToggleButtonGroup>
+                </Box>
 
                 {iconType === 'image' ? (
-                  <div className="space-y-3">
-                    <div
-                      className={`flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed px-4 py-10 text-center transition ${
-                        isDragging
-                          ? 'border-primary bg-primary/10'
-                          : 'border-base-content/30 bg-base-300/40'
-                      }`}
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                    <Box
                       onDragOver={(event) => {
                         event.preventDefault()
                         setIsDragging(true)
                       }}
                       onDragLeave={() => setIsDragging(false)}
                       onDrop={handleDrop}
+                      sx={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 1.5,
+                        px: 2,
+                        py: 5,
+                        textAlign: 'center',
+                        borderRadius: 1,
+                        border: '2px dashed',
+                        borderColor: isDragging ? 'primary.main' : 'divider',
+                        bgcolor: isDragging ? 'action.hover' : 'transparent',
+                        transition: 'all 0.15s',
+                      }}
                     >
-                      <p className="text-sm text-base-content/70">
-                        Drag & drop an image here, or
-                      </p>
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-outline"
-                        onClick={() => fileInputRef.current?.click()}
-                      >
+                      <Typography variant="body2" color="text.secondary">
+                        Drag &amp; drop an image here, or
+                      </Typography>
+                      <Button variant="outlined" size="small" onClick={() => fileInputRef.current?.click()}>
                         Browse files
-                      </button>
-                      <p className="text-xs text-base-content/50">
+                      </Button>
+                      <Typography variant="caption" color="text.secondary">
                         PNG, JPG, SVG, WebP.
-                      </p>
+                      </Typography>
                       {isCompressing && (
-                        <p className="text-xs text-primary">
+                        <Typography variant="caption" color="primary">
                           Compressing image...
-                        </p>
+                        </Typography>
                       )}
                       <input
                         ref={fileInputRef}
                         type="file"
-                        className="hidden"
+                        hidden
                         accept="image/*"
                         onChange={handleFileChange}
                       />
-                    </div>
+                    </Box>
                     {imageFile && (
-                      <div className="space-y-1 text-xs text-base-content/60">
-                        <p>Selected: {imageFile.name}</p>
+                      <Box sx={{ color: 'text.secondary' }}>
+                        <Typography variant="caption" sx={{ display: 'block' }}>
+                          Selected: {imageFile.name}
+                        </Typography>
                         {imageInfo && (
-                          <p>
-                            Size: {Math.round(imageInfo.originalSize / 1024)} KB
-                            {'->'} {Math.round(imageInfo.compressedSize / 1024)} KB
-                          </p>
+                          <Typography variant="caption" sx={{ display: 'block' }}>
+                            Size: {Math.round(imageInfo.originalSize / 1024)} KB &rarr;{' '}
+                            {Math.round(imageInfo.compressedSize / 1024)} KB
+                          </Typography>
                         )}
-                      </div>
+                      </Box>
                     )}
-                  </div>
+                  </Box>
                 ) : (
-                  <label className="form-control w-full">
-                    <div className="label">
-                      <span className="label-text">SVG Code</span>
-                    </div>
-                    <textarea
-                      className="textarea textarea-bordered w-full min-h-[180px] font-mono text-sm"
-                      placeholder="<svg ...>...</svg>"
-                      value={svgCode}
-                      onChange={(event) => setSvgCode(event.target.value)}
-                    />
-                  </label>
+                  <TextField
+                    label="SVG Code"
+                    placeholder="<svg ...>...</svg>"
+                    value={svgCode}
+                    onChange={(event) => setSvgCode(event.target.value)}
+                    multiline
+                    minRows={7}
+                    fullWidth
+                    slotProps={{ input: { sx: { fontFamily: 'monospace', fontSize: 13 } } }}
+                  />
                 )}
 
                 {error && (
-                  <div className="rounded-lg border border-error/30 bg-error/10 px-4 py-3 text-sm text-error">
+                  <Alert ref={errorRef} severity="error" role="alert">
                     {error}
-                  </div>
+                  </Alert>
                 )}
-              </div>
-            </div>
-          </div>
+              </CardContent>
+            </Card>
+          </Grid>
 
-          <div className="space-y-6">
-            <div className="card bg-base-200 shadow-xl border border-base-content/20">
-              <div className="card-body space-y-4">
-                <h2 className="card-title text-xl font-semibold">Preview</h2>
-                <div className="flex h-48 items-center justify-center rounded-lg border border-base-content/20 bg-base-300/40">
+          <Grid size={{ xs: 12, xl: 4 }}>
+            <Card>
+              <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  Preview
+                </Typography>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    height: 192,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: 1,
+                    border: 1,
+                    borderColor: 'divider',
+                    bgcolor: 'action.hover',
+                  }}
+                >
                   {iconType === 'image' ? (
                     imagePreview.url ? (
-                      <img
+                      <Box
+                        component="img"
                         src={imagePreview.url}
                         alt={name || 'Tech stack icon'}
-                        className="max-h-32 max-w-32 object-contain"
+                        sx={{ maxHeight: 128, maxWidth: 128, objectFit: 'contain' }}
                       />
                     ) : (
-                      <span className="text-sm text-base-content/60">
+                      <Typography variant="body2" color="text.secondary">
                         No image selected.
-                      </span>
+                      </Typography>
                     )
                   ) : svgCode.trim() ? (
-                    <div
-                      className="max-h-32 max-w-32 text-primary"
-                      dangerouslySetInnerHTML={{ __html: svgCode }}
+                    <Box
+                      sx={{ maxHeight: 128, maxWidth: 128, color: 'primary.main' }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeSvg(svgCode) }}
                     />
                   ) : (
-                    <span className="text-sm text-base-content/60">
+                    <Typography variant="body2" color="text.secondary">
                       Paste SVG code to preview.
-                    </span>
+                    </Typography>
                   )}
-                </div>
-                <p className="text-xs text-base-content/60">
+                </Box>
+                <Typography variant="caption" color="text.secondary">
                   Preview updates automatically for both image and SVG.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      </Box>
+      {confirmDialog}
     </DashboardLayout>
   )
 }

@@ -1,5 +1,19 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { FaSignInAlt } from 'react-icons/fa' // Import an icon from react-icons
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  CircularProgress,
+  IconButton,
+  InputAdornment,
+  TextField,
+  Typography,
+} from '@mui/material'
+import LoginIcon from '@mui/icons-material/Login'
+import VisibilityIcon from '@mui/icons-material/Visibility'
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { isAuthenticated, setAuth } from '../lib/auth'
 
@@ -8,6 +22,7 @@ const LoginPage: React.FC = () => {
   const location = useLocation()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -120,62 +135,105 @@ const LoginPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-100 p-4">
-      <div className="card w-full max-w-md bg-base-200 shadow-xl shadow-black/30 border border-base-content/20">
-        <div className="card-body">
-          <h2 className="card-title text-3xl font-bold text-white mb-6 justify-center">Login</h2>
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            <div className="form-control">
-              <label htmlFor="username" className="label">
-                <span className="label-text text-slate-300">Username</span>
-              </label>
-              <input
-                type="text"
-                id="username"
-                name="username"
-                className="input input-bordered w-full bg-slate-800 border-slate-700 text-white"
-                placeholder="your-username"
-                autoComplete="username"
-                value={username}
-                onChange={(event) => setUsername(event.target.value)}
-                required
-              />
-            </div>
-            <div className="form-control">
-              <label htmlFor="password" className="label">
-                <span className="label-text text-slate-300">Password</span>
-              </label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                className="input input-bordered w-full bg-slate-800 border-slate-700 text-white"
-                placeholder="********"
-                autoComplete="current-password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                required
-              />
-            </div>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        bgcolor: 'background.default',
+        p: 2,
+      }}
+    >
+      <Card sx={{ width: '100%', maxWidth: 440 }}>
+        <CardContent sx={{ p: { xs: 3, sm: 5 } }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 4 }}>
+            <Box
+              sx={{
+                width: 56,
+                height: 56,
+                mb: 2,
+                borderRadius: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'primary.contrastText',
+                bgcolor: 'primary.main',
+                fontWeight: 800,
+                fontSize: 24,
+                boxShadow: (t) => t.customShadows.primary,
+              }}
+            >
+              C
+            </Box>
+            <Typography variant="h4" sx={{ fontWeight: 700 }}>
+              Sign in to CMS Admin
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Enter your credentials to access the dashboard.
+            </Typography>
+          </Box>
+          <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+            <TextField
+              id="username"
+              name="username"
+              label="Username"
+              placeholder="your-username"
+              autoComplete="username"
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              required
+              fullWidth
+            />
+            <TextField
+              id="password"
+              name="password"
+              type={showPassword ? 'text' : 'password'}
+              label="Password"
+              placeholder="********"
+              autoComplete="current-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+              fullWidth
+              slotProps={{
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowPassword((prev) => !prev)}
+                        edge="end"
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                },
+              }}
+            />
             {error && (
-              <div className="rounded-lg border border-error/30 bg-error/10 px-4 py-3 text-sm text-error">
+              <Alert severity="error" role="alert">
                 {error}
-              </div>
+              </Alert>
             )}
-            <div className="form-control mt-6">
-              <button
-                type="submit"
-                className="btn btn-primary w-full"
-                disabled={isSubmitting}
-              >
-                <FaSignInAlt className="mr-2" />
-                {isSubmitting ? 'Signing in...' : 'Sign in'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
+            <Button
+              type="submit"
+              variant="contained"
+              size="large"
+              fullWidth
+              disabled={isSubmitting}
+              startIcon={
+                isSubmitting ? <CircularProgress size={18} color="inherit" /> : <LoginIcon />
+              }
+              sx={{ mt: 1 }}
+            >
+              {isSubmitting ? 'Signing in...' : 'Sign in'}
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
+    </Box>
   )
 }
 

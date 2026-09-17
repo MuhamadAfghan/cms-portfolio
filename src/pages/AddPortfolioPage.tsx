@@ -1,8 +1,28 @@
 import React, { useEffect, useRef, useState } from 'react'
 import Compressor from 'compressorjs'
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Checkbox,
+  FormControlLabel,
+  Grid,
+  MenuItem,
+  Switch,
+  TextField,
+  ToggleButton,
+  ToggleButtonGroup,
+  Typography,
+} from '@mui/material'
 import DashboardLayout from '../layouts/DashboardLayout'
 import WysiwygEditor from '../components/WysiwygEditor'
-import { useNavigate, Link } from 'react-router-dom'
+import PageHeader from '../components/PageHeader'
+import { useConfirm } from '../components/feedback'
+import { useNavigate } from 'react-router-dom'
+import { sanitizeSvg } from '../lib/sanitize'
+import { useUnsavedChanges } from '../hooks/useUnsavedChanges'
 import { usePortfolios } from '../contexts/PortfolioContext'
 import { useTechStacks } from '../contexts/TechStackContext'
 import {
@@ -87,7 +107,9 @@ const slugify = (value: string) =>
 const AddPortfolioPage: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const imagesRef = useRef<ImageItem[]>([])
+  const errorRef = useRef<HTMLDivElement | null>(null)
   const navigate = useNavigate()
+  const { confirm, confirmDialog } = useConfirm()
   const { createItem } = usePortfolios()
   const { items: techStacks, createItem: createTechStack } = useTechStacks()
   const [title, setTitle] = useState('')
@@ -119,9 +141,30 @@ const AddPortfolioPage: React.FC = () => {
   const [newStackSaving, setNewStackSaving] = useState(false)
   const [newStackCompressing, setNewStackCompressing] = useState(false)
 
+  const isDirty =
+    !isSaving &&
+    Boolean(
+      title ||
+        slug ||
+        summary ||
+        content ||
+        linkDemo ||
+        linkGithub ||
+        featured ||
+        selectedTechStacks.length ||
+        images.length,
+    )
+  useUnsavedChanges(isDirty)
+
   useEffect(() => {
     imagesRef.current = images
   }, [images])
+
+  useEffect(() => {
+    if (error && errorRef.current) {
+      errorRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [error])
 
   useEffect(() => {
     return () => {
@@ -246,6 +289,20 @@ const AddPortfolioPage: React.FC = () => {
     }
   }
 
+  const handleCancel = async () => {
+    if (isDirty) {
+      const ok = await confirm({
+        title: 'Discard changes?',
+        message: 'You have unsaved changes. Leaving now will discard them.',
+        confirmText: 'Discard',
+        cancelText: 'Keep editing',
+        destructive: true,
+      })
+      if (!ok) return
+    }
+    navigate('/portfolios')
+  }
+
   const handleSave = async () => {
     const input = normalizePortfolioInput({
       title,
@@ -282,42 +339,38 @@ const AddPortfolioPage: React.FC = () => {
 
   return (
     <DashboardLayout>
-      <div className="p-8 space-y-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h1 className="text-4xl font-bold text-white">Add New Portfolio</h1>
-            <p className="text-sm text-base-content/60 mt-2">
-              Upload images, write the story, and publish a new portfolio item.
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Link to="/portfolios" className="btn btn-ghost">
-              Cancel
-            </Link>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={handleSave}
-              disabled={isSaving}
-            >
-              {isSaving ? 'Saving...' : 'Save Portfolio'}
-            </button>
-          </div>
-        </div>
+      <Box sx={{ p: { xs: 2, sm: 3, md: 4 }, display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <PageHeader
+          title="New Portfolio"
+          subtitle="Upload images, write the story, and publish a new portfolio item."
+          breadcrumbs={[
+            { label: 'Dashboard', href: '/dashboard' },
+            { label: 'Portfolios', href: '/portfolios' },
+            { label: 'New' },
+          ]}
+          sx={{ mb: 0 }}
+          action={
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button variant="text" onClick={handleCancel}>
+                Cancel
+              </Button>
+              <Button variant="contained" onClick={handleSave} disabled={isSaving}>
+                {isSaving ? 'Saving...' : 'Save'}
+              </Button>
+            </Box>
+          }
+        />
 
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-          <div className="space-y-6 xl:col-span-2">
-            <div className="card bg-base-200 shadow-xl border border-base-content/20">
-              <div className="card-body space-y-4">
-                <h2 className="card-title text-xl font-semibold">
-                  Basic Information
-                </h2>
-                <label className="form-control w-full">
-                  <div className="label">
-                    <span className="label-text">Title</span>
-                  </div>
-                  <input
-                    className="input input-bordered w-full"
+        <Grid container spacing={3}>
+          <Grid size={{ xs: 12, xl: 8 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <Card>
+                <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Basic Information
+                  </Typography>
+                  <TextField
+                    label="Title"
                     placeholder="e.g. Pomoro"
                     value={title}
                     onChange={(event) => {
@@ -327,14 +380,11 @@ const AddPortfolioPage: React.FC = () => {
                         setSlug(slugify(nextTitle))
                       }
                     }}
+                    required
+                    fullWidth
                   />
-                </label>
-                <label className="form-control w-full">
-                  <div className="label">
-                    <span className="label-text">Slug</span>
-                  </div>
-                  <input
-                    className="input input-bordered w-full"
+                  <TextField
+                    label="Slug"
                     placeholder="e.g. pomoro"
                     value={slug}
                     onChange={(event) => {
@@ -342,345 +392,369 @@ const AddPortfolioPage: React.FC = () => {
                       setSlug(nextSlug)
                       setSlugEdited(nextSlug.trim().length > 0)
                     }}
+                    helperText="Auto-generated from the title. Used in the public URL."
+                    fullWidth
                   />
-                </label>
-                <label className="form-control w-full">
-                  <div className="label">
-                    <span className="label-text">Short Summary</span>
-                  </div>
-                  <textarea
-                    className="textarea textarea-bordered w-full min-h-[120px]"
+                  <TextField
+                    label="Short Summary"
                     placeholder="A quick overview for cards and previews."
                     value={summary}
                     onChange={(event) => setSummary(event.target.value)}
+                    multiline
+                    minRows={4}
+                    fullWidth
                   />
-                </label>
-                <label className="form-control w-full">
-                  <div className="label">
-                    <span className="label-text">Demo Link</span>
-                  </div>
-                  <input
-                    className="input input-bordered w-full"
+                  <TextField
+                    label="Demo Link"
                     placeholder="https://your-demo.com"
                     value={linkDemo}
                     onChange={(event) => setLinkDemo(event.target.value)}
+                    fullWidth
                   />
-                </label>
-                <label className="form-control w-full">
-                  <div className="label">
-                    <span className="label-text">GitHub Link</span>
-                  </div>
-                  <input
-                    className="input input-bordered w-full"
+                  <TextField
+                    label="GitHub Link"
                     placeholder="https://github.com/username/repo"
                     value={linkGithub}
                     onChange={(event) => setLinkGithub(event.target.value)}
+                    fullWidth
                   />
-                </label>
-              </div>
-            </div>
+                </CardContent>
+              </Card>
 
-            <div className="card bg-base-200 shadow-xl border border-base-content/20">
-              <div className="card-body space-y-4">
-                <h2 className="card-title text-xl font-semibold">Content</h2>
-                <WysiwygEditor value={content} onChange={setContent} />
-              </div>
-            </div>
+              <Card>
+                <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Content
+                  </Typography>
+                  <WysiwygEditor value={content} onChange={setContent} />
+                </CardContent>
+              </Card>
 
-            <div className="card bg-base-200 shadow-xl border border-base-content/20">
-              <div className="card-body space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="card-title text-xl font-semibold">Tech Stack</h2>
-                  <button
-                    type="button"
-                    className="btn btn-xs btn-outline"
-                    onClick={() => setShowQuickAdd((prev) => !prev)}
-                  >
-                    {showQuickAdd ? 'Close' : 'Add New Tech Stack'}
-                  </button>
-                </div>
+              <Card>
+                <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      Tech Stack
+                    </Typography>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => setShowQuickAdd((prev) => !prev)}
+                    >
+                      {showQuickAdd ? 'Close' : 'Add New Tech Stack'}
+                    </Button>
+                  </Box>
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  {techStacks.map((stack) => {
-                    const selected = selectedTechStacks.includes(stack.id)
-                    return (
-                      <label
-                        key={stack.id}
-                        className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-sm ${
-                          selected
-                            ? 'border-primary bg-primary/10 text-primary'
-                            : 'border-base-content/20 bg-base-300/40'
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          className="checkbox checkbox-sm"
-                          checked={selected}
-                          onChange={() => toggleTechStack(stack.id)}
-                        />
-                        {stack.type === 'image' && stack.source ? (
-                          <img
-                            src={stack.source}
-                            alt={stack.name}
-                            className="h-6 w-6 object-contain"
-                          />
-                        ) : stack.type === 'svg' && stack.source ? (
-                          <span
-                            className="h-6 w-6"
-                            dangerouslySetInnerHTML={{ __html: stack.source }}
-                          />
-                        ) : (
-                          <span className="h-6 w-6 rounded bg-base-200" />
-                        )}
-                        <span>{stack.name}</span>
-                      </label>
-                    )
-                  })}
-                  {!techStacks.length && (
-                    <div className="text-sm text-base-content/60">
-                      No tech stacks yet. Add one below.
-                    </div>
-                  )}
-                </div>
+                  <Grid container spacing={1.5}>
+                    {techStacks.map((stack) => {
+                      const selected = selectedTechStacks.includes(stack.id)
+                      return (
+                        <Grid key={stack.id} size={{ xs: 12, sm: 6 }}>
+                          <Box
+                            component="label"
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1.5,
+                              borderRadius: 1,
+                              border: 1,
+                              px: 1.5,
+                              py: 1,
+                              cursor: 'pointer',
+                              borderColor: selected ? 'primary.main' : 'divider',
+                              bgcolor: selected ? 'action.selected' : 'transparent',
+                            }}
+                          >
+                            <Checkbox
+                              size="small"
+                              checked={selected}
+                              onChange={() => toggleTechStack(stack.id)}
+                              sx={{ p: 0 }}
+                            />
+                            {stack.type === 'image' && stack.source ? (
+                              <Box
+                                component="img"
+                                src={stack.source}
+                                alt={stack.name}
+                                sx={{ height: 24, width: 24, objectFit: 'contain' }}
+                              />
+                            ) : stack.type === 'svg' && stack.source ? (
+                              <Box
+                                sx={{ height: 24, width: 24 }}
+                                dangerouslySetInnerHTML={{ __html: sanitizeSvg(stack.source) }}
+                              />
+                            ) : (
+                              <Box sx={{ height: 24, width: 24, borderRadius: 1, bgcolor: 'action.hover' }} />
+                            )}
+                            <Typography variant="body2">{stack.name}</Typography>
+                          </Box>
+                        </Grid>
+                      )
+                    })}
+                    {!techStacks.length && (
+                      <Grid size={12}>
+                        <Typography variant="body2" color="text.secondary">
+                          No tech stacks yet. Add one below.
+                        </Typography>
+                      </Grid>
+                    )}
+                  </Grid>
 
-                {showQuickAdd && (
-                  <div className="mt-4 rounded-lg border border-base-content/20 bg-base-300/30 p-4 space-y-4">
-                    <h3 className="text-sm font-semibold text-base-content">
-                      Quick Add Tech Stack
-                    </h3>
-                    <label className="form-control w-full">
-                      <div className="label">
-                        <span className="label-text">Name</span>
-                      </div>
-                      <input
-                        className="input input-bordered w-full"
+                  {showQuickAdd && (
+                    <Box
+                      sx={{
+                        mt: 1,
+                        borderRadius: 1,
+                        border: 1,
+                        borderColor: 'divider',
+                        bgcolor: 'action.hover',
+                        p: 2,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 2,
+                      }}
+                    >
+                      <Typography variant="subtitle2">Quick Add Tech Stack</Typography>
+                      <TextField
+                        label="Name"
                         placeholder="e.g. Astro"
                         value={newStackName}
                         onChange={(event) => setNewStackName(event.target.value)}
+                        fullWidth
+                        size="small"
                       />
-                    </label>
-                    <div className="form-control">
-                      <div className="label">
-                        <span className="label-text">Icon Type</span>
-                      </div>
-                      <div className="join">
-                        <button
-                          type="button"
-                          className={`btn join-item ${
-                            newStackType === 'image' ? 'btn-primary' : 'btn-outline'
-                          }`}
-                          onClick={() => setNewStackType('image')}
+                      <Box>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          Icon Type
+                        </Typography>
+                        <ToggleButtonGroup
+                          exclusive
+                          value={newStackType}
+                          onChange={(_, next) => next && setNewStackType(next)}
+                          size="small"
                         >
-                          Image
-                        </button>
-                        <button
-                          type="button"
-                          className={`btn join-item ${
-                            newStackType === 'svg' ? 'btn-primary' : 'btn-outline'
-                          }`}
-                          onClick={() => setNewStackType('svg')}
-                        >
-                          SVG Code
-                        </button>
-                      </div>
-                    </div>
+                          <ToggleButton value="image">Image</ToggleButton>
+                          <ToggleButton value="svg">SVG Code</ToggleButton>
+                        </ToggleButtonGroup>
+                      </Box>
 
-                    {newStackType === 'image' ? (
-                      <div className="space-y-3">
-                        <input
-                          type="file"
-                          className="file-input file-input-bordered w-full"
-                          accept="image/*"
-                          onChange={(event) => {
-                            const file = event.target.files?.[0]
-                            if (file) handleQuickAddImage(file)
-                            event.target.value = ''
-                          }}
-                        />
-                        {newStackCompressing && (
-                          <p className="text-xs text-primary">
-                            Compressing image...
-                          </p>
-                        )}
-                      </div>
-                    ) : (
-                      <textarea
-                        className="textarea textarea-bordered w-full min-h-[120px] font-mono text-sm"
-                        placeholder="<svg ...>...</svg>"
-                        value={newStackSvg}
-                        onChange={(event) => setNewStackSvg(event.target.value)}
-                      />
-                    )}
-
-                    <div className="rounded-lg border border-base-content/20 bg-base-200 p-4 text-center">
                       {newStackType === 'image' ? (
-                        newStackPreview.url ? (
-                          <img
-                            src={newStackPreview.url}
-                            alt={newStackName || 'Tech stack icon'}
-                            className="mx-auto h-16 w-16 object-contain"
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                          <Button variant="outlined" component="label" size="small">
+                            Choose image
+                            <input
+                              type="file"
+                              hidden
+                              accept="image/*"
+                              onChange={(event) => {
+                                const file = event.target.files?.[0]
+                                if (file) handleQuickAddImage(file)
+                                event.target.value = ''
+                              }}
+                            />
+                          </Button>
+                          {newStackCompressing && (
+                            <Typography variant="caption" color="primary">
+                              Compressing image...
+                            </Typography>
+                          )}
+                        </Box>
+                      ) : (
+                        <TextField
+                          placeholder="<svg ...>...</svg>"
+                          value={newStackSvg}
+                          onChange={(event) => setNewStackSvg(event.target.value)}
+                          multiline
+                          minRows={5}
+                          fullWidth
+                          size="small"
+                          slotProps={{ input: { sx: { fontFamily: 'monospace', fontSize: 13 } } }}
+                        />
+                      )}
+
+                      <Box
+                        sx={{
+                          borderRadius: 1,
+                          border: 1,
+                          borderColor: 'divider',
+                          bgcolor: 'background.paper',
+                          p: 2,
+                          textAlign: 'center',
+                        }}
+                      >
+                        {newStackType === 'image' ? (
+                          newStackPreview.url ? (
+                            <Box
+                              component="img"
+                              src={newStackPreview.url}
+                              alt={newStackName || 'Tech stack icon'}
+                              sx={{ mx: 'auto', height: 64, width: 64, objectFit: 'contain' }}
+                            />
+                          ) : (
+                            <Typography variant="caption" color="text.secondary">
+                              No image selected.
+                            </Typography>
+                          )
+                        ) : newStackSvg.trim() ? (
+                          <Box
+                            sx={{ mx: 'auto', height: 64, width: 64 }}
+                            dangerouslySetInnerHTML={{ __html: sanitizeSvg(newStackSvg) }}
                           />
                         ) : (
-                          <span className="text-xs text-base-content/60">
-                            No image selected.
-                          </span>
-                        )
-                      ) : newStackSvg.trim() ? (
-                        <div
-                          className="mx-auto h-16 w-16"
-                          dangerouslySetInnerHTML={{ __html: newStackSvg }}
-                        />
-                      ) : (
-                        <span className="text-xs text-base-content/60">
-                          Paste SVG code to preview.
-                        </span>
-                      )}
-                    </div>
+                          <Typography variant="caption" color="text.secondary">
+                            Paste SVG code to preview.
+                          </Typography>
+                        )}
+                      </Box>
 
-                    {newStackError && (
-                      <div className="rounded-lg border border-error/30 bg-error/10 px-4 py-3 text-sm text-error">
-                        {newStackError}
-                      </div>
-                    )}
+                      {newStackError && <Alert severity="error">{newStackError}</Alert>}
 
-                    <div className="flex justify-end">
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-primary"
-                        onClick={handleQuickAdd}
-                        disabled={newStackSaving}
-                      >
-                        {newStackSaving ? 'Saving...' : 'Save Tech Stack'}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            <div className="card bg-base-200 shadow-xl border border-base-content/20">
-              <div className="card-body space-y-4">
-                <h2 className="card-title text-xl font-semibold">Images</h2>
-                <div
-                  className={`flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed px-4 py-10 text-center transition ${
-                    isDragging
-                      ? 'border-primary bg-primary/10'
-                      : 'border-base-content/30 bg-base-300/40'
-                  }`}
-                  onDragOver={(event) => {
-                    event.preventDefault()
-                    setIsDragging(true)
-                  }}
-                  onDragLeave={() => setIsDragging(false)}
-                  onDrop={handleDrop}
-                >
-                  <p className="text-sm text-base-content/70">
-                    Drag & drop images here, or
-                  </p>
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-outline"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    Browse files
-                  </button>
-                  <p className="text-xs text-base-content/50">
-                    PNG, JPG, WebP. Multiple images allowed.
-                  </p>
-                  {isCompressing && (
-                    <p className="text-xs text-primary">Compressing images...</p>
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                        <Button
+                          variant="contained"
+                          size="small"
+                          onClick={handleQuickAdd}
+                          disabled={newStackSaving}
+                        >
+                          {newStackSaving ? 'Saving...' : 'Save Tech Stack'}
+                        </Button>
+                      </Box>
+                    </Box>
                   )}
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    className="hidden"
-                    accept="image/*"
-                    multiple
-                    onChange={handleInputChange}
-                  />
-                </div>
+                </CardContent>
+              </Card>
+            </Box>
+          </Grid>
 
-                {images.length > 0 && (
-                  <div className="grid grid-cols-2 gap-4">
-                    {images.map((image) => (
-                      <div
-                        key={image.id}
-                        className="rounded-lg border border-base-content/20 bg-base-300/30 p-3"
-                      >
-                        <img
-                          src={image.previewUrl}
-                          alt={image.file.name}
-                          className="h-28 w-full rounded-md object-cover"
-                        />
-                        <div className="mt-2 space-y-1">
-                          <p className="text-xs font-medium text-base-content">
-                            {image.file.name}
-                          </p>
-                          <p className="text-xs text-base-content/60">
-                            {formatBytes(image.originalSize)} {'->'}{' '}
-                            {formatBytes(image.compressedSize)}
-                          </p>
-                          <button
-                            type="button"
-                            className="btn btn-xs btn-ghost"
-                            onClick={() => removeImage(image.id)}
+          <Grid size={{ xs: 12, xl: 4 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <Card>
+                <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Images
+                  </Typography>
+                  <Box
+                    onDragOver={(event) => {
+                      event.preventDefault()
+                      setIsDragging(true)
+                    }}
+                    onDragLeave={() => setIsDragging(false)}
+                    onDrop={handleDrop}
+                    sx={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 1.5,
+                      px: 2,
+                      py: 5,
+                      textAlign: 'center',
+                      borderRadius: 1,
+                      border: '2px dashed',
+                      borderColor: isDragging ? 'primary.main' : 'divider',
+                      bgcolor: isDragging ? 'action.hover' : 'transparent',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    <Typography variant="body2" color="text.secondary">
+                      Drag &amp; drop images here, or
+                    </Typography>
+                    <Button variant="outlined" size="small" onClick={() => fileInputRef.current?.click()}>
+                      Browse files
+                    </Button>
+                    <Typography variant="caption" color="text.secondary">
+                      PNG, JPG, WebP. Multiple images allowed.
+                    </Typography>
+                    {isCompressing && (
+                      <Typography variant="caption" color="primary">
+                        Compressing images...
+                      </Typography>
+                    )}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      hidden
+                      accept="image/*"
+                      multiple
+                      onChange={handleInputChange}
+                    />
+                  </Box>
+
+                  {images.length > 0 && (
+                    <Grid container spacing={2}>
+                      {images.map((image) => (
+                        <Grid key={image.id} size={6}>
+                          <Box
+                            sx={{
+                              borderRadius: 1,
+                              border: 1,
+                              borderColor: 'divider',
+                              bgcolor: 'action.hover',
+                              p: 1.5,
+                            }}
                           >
-                            Remove
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+                            <Box
+                              component="img"
+                              src={image.previewUrl}
+                              alt={image.file.name}
+                              sx={{ height: 112, width: '100%', borderRadius: 1, objectFit: 'cover' }}
+                            />
+                            <Box sx={{ mt: 1 }}>
+                              <Typography variant="caption" noWrap sx={{ display: 'block', fontWeight: 500 }}>
+                                {image.file.name}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                                {formatBytes(image.originalSize)} &rarr; {formatBytes(image.compressedSize)}
+                              </Typography>
+                              <Button size="small" variant="text" onClick={() => removeImage(image.id)}>
+                                Remove
+                              </Button>
+                            </Box>
+                          </Box>
+                        </Grid>
+                      ))}
+                    </Grid>
+                  )}
+                </CardContent>
+              </Card>
 
-            <div className="card bg-base-200 shadow-xl border border-base-content/20">
-              <div className="card-body space-y-4">
-                <h2 className="card-title text-xl font-semibold">Visibility</h2>
-                <label className="form-control w-full">
-                  <div className="label">
-                    <span className="label-text">Status</span>
-                  </div>
-                  <select
-                    className="select select-bordered w-full"
+              <Card>
+                <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Visibility
+                  </Typography>
+                  <TextField
+                    select
+                    label="Status"
                     value={status}
-                    onChange={(event) =>
-                      setStatus(event.target.value as PortfolioStatus)
-                    }
+                    onChange={(event) => setStatus(event.target.value as PortfolioStatus)}
+                    fullWidth
                   >
-                    <option value="draft">Draft</option>
-                    <option value="published">Published</option>
-                  </select>
-                </label>
-                <label className="form-control w-full">
-                  <div className="label">
-                    <span className="label-text">Featured</span>
-                  </div>
-                  <select
-                    className="select select-bordered w-full"
-                    value={featured ? 'yes' : 'no'}
-                    onChange={(event) =>
-                      setFeatured(event.target.value === 'yes')
+                    <MenuItem value="draft">Draft</MenuItem>
+                    <MenuItem value="published">Published</MenuItem>
+                  </TextField>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={featured}
+                        onChange={(event) => setFeatured(event.target.checked)}
+                      />
                     }
-                  >
-                    <option value="no">No</option>
-                    <option value="yes">Yes</option>
-                  </select>
-                </label>
-              </div>
-            </div>
+                    label="Featured project"
+                  />
+                </CardContent>
+              </Card>
 
-            {error && (
-              <div className="rounded-lg border border-error/30 bg-error/10 px-4 py-3 text-sm text-error">
-                {error}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+              {error && (
+                <Alert ref={errorRef} severity="error" role="alert">
+                  {error}
+                </Alert>
+              )}
+            </Box>
+          </Grid>
+        </Grid>
+      </Box>
+      {confirmDialog}
     </DashboardLayout>
   )
 }
